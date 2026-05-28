@@ -6,7 +6,9 @@ SKETCH := firmware
 FQBN   := esp32:esp32:esp32c3:CDCOnBoot=cdc
 BUILD  := $(SKETCH)/build
 BAUD   := 115200
-PORT   ?= $(shell ls /dev/cu.usbmodem* 2>/dev/null | head -1)
+# Auto-detect the board's serial port. macOS exposes it as /dev/cu.usbmodem*;
+# Linux (incl. WSL with usbipd) as /dev/ttyACM* or /dev/ttyUSB*.
+PORT   ?= $(shell ls /dev/cu.usbmodem* /dev/ttyACM* /dev/ttyUSB* 2>/dev/null | head -1)
 
 # arduino-cli invoked with the project-local config (firmware/arduino-cli.yaml)
 # instead of the global ~/Library/Arduino15 one, so the repo is self-contained.

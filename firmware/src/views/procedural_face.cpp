@@ -409,9 +409,9 @@ void ProceduralFace::render(Renderer& r) {
       // paired with a tight, focused bite — upper teeth clamped onto a
       // small lower lip with a clear notch where one tooth digs in.
       int bob = wave(t, 1100, 1);
-      int lid = wave(t, 2600, 2);    // slow, sultry lid droop
-      int flush = wave(t, 1900, 1);  // a flushed-cheek pulse
-      int squirm = wave(t, 1700, 1); // tiny side-to-side lip squirm
+      int lid = wave(t, 2600, 2);     // slow, sultry lid droop
+      int flush = wave(t, 1900, 1);   // a flushed-cheek pulse
+      int squirm = wave(t, 1700, 1);  // tiny side-to-side lip squirm
       int ey = EYE_CY + bob;
       roundEye(r, elx, ey, 20, 22, 8, eyeOpen_);
       roundEye(r, erx, ey, 20, 22, 8, eyeOpen_);
