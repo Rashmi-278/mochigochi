@@ -23,8 +23,8 @@ import { select } from "@inquirer/prompts";
 import * as client from "./client";
 import type { Result } from "./client";
 
-type Component = "serial" | "oled" | "buzzer";
-const ORDER: readonly Component[] = ["serial", "oled", "buzzer"] as const;
+type Component = "serial" | "oled" | "buzzer" | "imu";
+const ORDER: readonly Component[] = ["serial", "oled", "buzzer", "imu"] as const;
 
 const TIPS: Record<Component, string[]> = {
   serial: [
@@ -47,6 +47,14 @@ const TIPS: Record<Component, string[]> = {
     "In a quiet room the tone is faint; hold the buzzer close to your ear.",
     "The firmware only jingles on a face *change* in Desktop Mode — the test forces a transition, so a silent buzzer here means hardware.",
   ],
+  imu: [
+    "Check SDA -> GPIO5 and SCL -> GPIO6 (same I2C bus as the OLED).",
+    "Check VCC -> 3V3 (not 5V) and GND -> GND on the MPU-6050 module.",
+    "If the OLED also stopped working, the MPU is shorting the bus — unplug it and confirm the OLED comes back.",
+    "Default address is 0x68. If your module ties AD0 high, edit MPU_ADDR in firmware/src/config.h to 0x69 and reflash.",
+    "Watch the serial log right after boot — it prints 'IMU: MPU-6050 ready' or 'not detected'. The latter means no I2C ACK.",
+    "Pickup needs a brisk lift (>1.25 g for 250 ms). A gentle pluck won't fire it — try lifting faster.",
+  ],
 };
 
 // Public entry — called from cli.ts. `which` undefined → menu; "all" →
@@ -57,15 +65,16 @@ export async function runTest(which?: string): Promise<void> {
   if (target === "all") {
     let serialOk = await runOne("serial");
     if (!serialOk) {
-      console.log("\nSkipping OLED + buzzer tests — without a serial link they can't run.");
+      console.log("\nSkipping the rest — without a serial link they can't run.");
       summary(1, 0);
       process.exit(1);
     }
     const oledOk = await runOne("oled");
     const buzzerOk = await runOne("buzzer");
-    const fails = [serialOk, oledOk, buzzerOk].filter((x) => !x).length;
-    const passes = 3 - fails;
-    summary(fails, passes);
+    const imuOk = await runOne("imu");
+    const results = [serialOk, oledOk, buzzerOk, imuOk];
+    const fails = results.filter((x) => !x).length;
+    summary(fails, results.length - fails);
     process.exit(fails === 0 ? 0 : 1);
   }
 
@@ -86,6 +95,7 @@ async function pickComponent(): Promise<Component | "all"> {
       { name: "Serial link  — daemon ↔ board (PING)", value: "serial" as const },
       { name: "OLED display  — show 'Hello'", value: "oled" as const },
       { name: "Buzzer  — play a tone", value: "buzzer" as const },
+      { name: "IMU (MPU-6050)  — lift & shake gestures", value: "imu" as const },
     ],
   });
 }
@@ -100,6 +110,7 @@ async function runOne(c: Component): Promise<boolean> {
   if (c === "serial") ok = await testSerial();
   else if (c === "oled") ok = await testOled();
   else if (c === "buzzer") ok = await testBuzzer();
+  else if (c === "imu") ok = await testImu();
   if (ok) {
     console.log(`  ✓ PASS — ${c}`);
   } else {
@@ -164,6 +175,27 @@ async function testBuzzer(): Promise<boolean> {
   return await askYesNo("  Did you hear a tone from the buzzer?");
 }
 
+async function testImu(): Promise<boolean> {
+  // The firmware reacts to motion on its own — we don't need a new wire
+  // command. We just guide the user through two gestures and ask if the
+  // pet's face responded the way it should.
+  console.log("  This test watches what the OLED does while you handle the device.");
+  console.log("  The pet should react on its own — no commands are sent.");
+  console.log();
+  console.log("  Step 1 of 2:  pick up the device with a brisk lift.");
+  console.log("  (You have ~8 seconds.)");
+  await sleep(8000);
+  const liftOk = await askYesNo("  Did the face change to a wide-eyed 'surprised' expression?");
+  if (!liftOk) return false;
+
+  console.log();
+  console.log("  Step 2 of 2:  shake the device back-and-forth firmly for a second.");
+  console.log("  (You have ~8 seconds.)");
+  await sleep(8000);
+  const shakeOk = await askYesNo("  Did the face change to a teary 'sad' expression?");
+  return shakeOk;
+}
+
 // --- Pretty-printing helpers ------------------------------------------
 
 function header(c: Component): void {
@@ -171,6 +203,7 @@ function header(c: Component): void {
     serial: "Serial link (PING)",
     oled: "OLED display (SSD1306, I2C 0x3C — SDA=GPIO5, SCL=GPIO6)",
     buzzer: "Buzzer (passive piezo on GPIO10)",
+    imu: "IMU (MPU-6050, I2C 0x68 — shared SDA=GPIO5, SCL=GPIO6)",
   };
   console.log("");
   console.log("------------------------------------------------------------");

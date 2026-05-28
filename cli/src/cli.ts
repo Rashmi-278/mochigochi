@@ -138,7 +138,7 @@ program.command("ping").description("liveness check (PONG)")
 program
   .command("test")
   .description("interactive hardware self-test (asks y/n per component)")
-  .argument("[component]", "serial | oled | buzzer | all (omit to pick from a menu)")
+  .argument("[component]", "serial | oled | buzzer | imu | all (omit to pick from a menu)")
   .action(async (component?: string) => {
     await runTest(component);
   });

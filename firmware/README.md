@@ -88,6 +88,38 @@ face. In Desktop Mode every expression change jingles; in Free Mode it
 stays quieter — a jingle plays only when the mood shifts. Non-blocking
 (LEDC-driven).
 
+## The IMU (MPU-6050)
+
+A 6-axis MPU-6050 (the GY-521 module works) shares the OLED's I2C bus
+and lets the pet react to being handled:
+
+| MPU pin  | Board                          |
+| -------- | ------------------------------ |
+| VCC      | **3V3** (not 5V)               |
+| GND      | GND                            |
+| SDA      | GPIO5 (same as OLED)           |
+| SCL      | GPIO6 (same as OLED)           |
+| AD0      | leave floating → I2C addr 0x68 |
+| XDA/XCL/INT | unused                      |
+
+Two gestures are detected, each treated like a BOOT-button tap — they
+hand control to Desktop Mode, snap to the face view, and the pet drifts
+back to Free Mode ~60 s later:
+
+- **Pickup** — sustained |a| above ~1.25 g for 250 ms (a brisk lift)
+  → **`surprised`** expression. The pet looks anxious about being held.
+- **Shake** — rapid back-and-forth, ≥4 large peaks within 600 ms on any
+  axis → **`sad`** expression. The pet cries (it has a tear animation).
+
+After any event the detector goes quiet for 1.5 s, so a single gesture
+fires once instead of a burst. If the MPU-6050 isn't connected, the
+boot log prints `IMU: not detected — motion disabled` and the rest of
+the pet behaves exactly as before.
+
+The default I2C address is `0x68`. If your breakout ties **AD0 HIGH**,
+edit `MPU_ADDR` in `src/config.h` to `0x69` and reflash. To verify the
+sensor end-to-end, run `gochi test imu`.
+
 ## Manual test checklist
 
 1. **Boot** — the OLED comes up in Free Mode; the face changes on its own.
@@ -110,6 +142,7 @@ src/transport.{h,cpp}        buffered serial line I/O
 src/renderer.{h,cpp}         frame-oriented drawing surface
 src/display/                 U8g2-backed SSD1306 driver (hardware I2C)
 src/buzzer/                  non-blocking piezo tone-sequence player
+src/imu/                     MPU-6050 driver + pickup / shake detector
 src/views/                   View interface, FaceView, TextView, ImageView, ViewManager
 src/views/procedural_face.*  the procedural face — all 12 expressions
 src/modes/                   Mode interface, DesktopMode, FreeMode

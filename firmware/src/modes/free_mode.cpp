@@ -46,12 +46,15 @@ Pool poolFor(Mood m) {
   }
 }
 
-// Timings (ms). The pet changes expression every ~10-17 s and may drift
-// to a new mood every ~45-90 s.
-const int EXPR_MIN_MS = 9000;
-const int EXPR_MAX_MS = 17000;
-const int MOOD_MIN_MS = 45000;
-const int MOOD_MAX_MS = 90000;
+// Timings (ms). The pet changes expression every ~14-16 min and may
+// drift to a new mood every ~110-130 min (≈ 2 h, with some jitter so
+// it doesn't feel clockwork). Note: a mood drift also picks a fresh
+// expression, so the practical expression cadence is the *minimum* of
+// these two intervals.
+const int EXPR_MIN_MS = 14 * 60 * 1000;   // 840 000
+const int EXPR_MAX_MS = 16 * 60 * 1000;   // 960 000
+const int MOOD_MIN_MS = 110 * 60 * 1000;  // 6 600 000  (~1 h 50 min)
+const int MOOD_MAX_MS = 130 * 60 * 1000;  // 7 800 000  (~2 h 10 min)
 
 int randRange(int lo, int hi) {
   return lo + static_cast<int>(esp_random() % static_cast<uint32_t>(hi - lo + 1));

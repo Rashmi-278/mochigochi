@@ -82,8 +82,9 @@ gochi health
 
 # interactive hardware self-test — picks a component from a menu,
 # asks y/n after each, drops troubleshooting tips on 'no'.
-gochi test               # menu: serial / OLED / buzzer / all
+gochi test               # menu: serial / OLED / buzzer / IMU / all
 gochi test oled          # jump straight to one component
+gochi test imu           # lift + shake the device, verify the face reacts
 gochi test all           # run them all in order
 ```
 

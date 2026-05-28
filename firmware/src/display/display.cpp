@@ -24,7 +24,7 @@ U8G2_SSD1306_128X64_NONAME_F_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE, PIN_SCL, PIN_SD
 namespace display {
 
 void begin() {
-  oled.setBusClock(400000);  // 400 kHz I2C fast mode (4x the 100 kHz default)
+  oled.setBusClock(400000);  // 400 kHz I2C fast mode — OLED is alone on Wire
   oled.begin();
   oled.setFont(u8g2_font_ncenB14_tr);
 }
