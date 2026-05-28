@@ -7,8 +7,6 @@
 // to neutral after IMU_FACE_HOLD_MS. The buzzer jingles on every face
 // change in Desktop Mode. See firmware/README.
 
-#include <Wire.h>  // TEMP: I2C bus scan diagnostic — remove after debugging
-
 #include "src/assets/expressions.h"
 #include "src/assets/jingles.h"
 #include "src/buzzer/buzzer.h"
@@ -92,34 +90,8 @@ static bool bootButtonPressed(uint32_t now) {
   return false;
 }
 
-// TEMP diagnostic: scan the I2C bus once at boot, cache the result, and
-// reprint it on a timer from loop(). Reprinting (instead of re-scanning)
-// avoids fighting U8g2's HW I2C for the bus, and lets `make monitor`
-// catch the result without needing a reset (which drops native USB).
-// The OLED should appear at 0x3C. If nothing is found, the panel isn't
-// wired/powered correctly (SDA->GPIO5, SCL->GPIO6, VCC->3V3, GND->GND).
-static char g_i2cReport[128] = "I2C scan: (not run)";
-
-static void scanI2C() {
-  Wire.begin(PIN_SDA, PIN_SCL);
-  delay(50);
-  int found = 0;
-  int n = snprintf(g_i2cReport, sizeof(g_i2cReport), "I2C scan:");
-  for (uint8_t addr = 1; addr < 127; addr++) {
-    Wire.beginTransmission(addr);
-    if (Wire.endTransmission() == 0) {
-      n += snprintf(g_i2cReport + n, sizeof(g_i2cReport) - n, " 0x%02X", addr);
-      found++;
-    }
-  }
-  if (found == 0) snprintf(g_i2cReport + n, sizeof(g_i2cReport) - n, " (none - check wiring/power)");
-  Wire.end();
-}
-
 void setup() {
   transport.begin(115200);
-  delay(300);  // TEMP: let USB CDC settle so the scan output isn't missed
-  scanI2C();   // TEMP diagnostic — remove after debugging
   renderer.init();
   buzzer::begin();
 
@@ -143,14 +115,6 @@ void setup() {
 
 void loop() {
   uint32_t now = millis();
-
-  // TEMP diagnostic: reprint the cached I2C scan every 3s so `make monitor`
-  // catches it without a reset. Remove with the rest of the scan code.
-  static uint32_t lastI2cPrintMs = 0;
-  if (now - lastI2cPrintMs >= 3000) {
-    lastI2cPrintMs = now;
-    Serial.println(g_i2cReport);
-  }
 
   Command cmd;
   if (transport.poll(cmd)) {
